@@ -1,4 +1,52 @@
-# Python
+# ============================================
+# DATA - NEVER COMMIT DATASETS!
+# ============================================
+data/
+data/**
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+eurosat-dataset.zip
+
+# Images - NEVER COMMIT
+*.jpg
+*.jpeg
+*.png
+*.tif
+*.tiff
+*.gif
+*.bmp
+*.svg
+
+# Keep directory structure only
+!data/.gitkeep
+!data/eurosat/.gitkeep
+
+# ============================================
+# MODELS - NEVER COMMIT LARGE FILES
+# ============================================
+*.h5
+*.hdf5
+*.pb
+*.pth
+*.pt
+*.onnx
+*.weights
+*.ckpt
+models/
+models/**
+!models/.gitkeep
+!models/checkpoints/.gitkeep
+
+# TensorFlow/Keras cache
+tfhub_cache/
+.keras/
+
+# ============================================
+# PYTHON
+# ============================================
 __pycache__/
 *.py[cod]
 *$py.class
@@ -9,40 +57,50 @@ env/
 ENV/
 .venv
 *.egg-info/
+dist/
+build/
 
-# Jupyter Notebooks
+# ============================================
+# JUPYTER
+# ============================================
 .ipynb_checkpoints/
 *.ipynb
 
-# Models & Data (large files)
-*.h5
-*.hdf5
-*.pth
-*.pt
-models/checkpoints/*.h5
-!models/checkpoints/.gitkeep
-data/eurosat/**
-!data/eurosat/.gitkeep
-
-# Environment
+# ============================================
+# ENVIRONMENT
+# ============================================
 .env
 .env.local
+.env.*.local
 
+# ============================================
 # IDEs
+# ============================================
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
+# ============================================
 # OS
+# ============================================
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Logs
+# ============================================
+# LOGS & TESTING
+# ============================================
 *.log
 logs/
-
-# Testing
 .pytest_cache/
 .coverage
 htmlcov/
+
+# ============================================
+# TEMPORARY
+# ============================================
+temp/
+tmp/
+*.tmp
