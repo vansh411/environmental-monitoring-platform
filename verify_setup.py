@@ -22,9 +22,9 @@ def verify_folders():
     all_good = True
     for folder in required:
         if Path(folder).exists():
-            print(f"  ✅ {folder}")
+            print(f"   {folder}")
         else:
-            print(f"  ❌ {folder} - MISSING")
+            print(f"   {folder} - MISSING")
             all_good = False
     return all_good
 
@@ -37,9 +37,9 @@ def verify_packages():
     for package in required:
         try:
             __import__(package)
-            print(f"  ✅ {package}")
+            print(f"   {package}")
         except ImportError:
-            print(f"  ❌ {package} - NOT INSTALLED")
+            print(f"   {package} - NOT INSTALLED")
             all_good = False
     return all_good
 
@@ -49,14 +49,14 @@ def verify_git():
     
     # Check if git repo
     if Path('.git').exists():
-        print("  ✅ Git repository initialized")
+        print("   Git repository initialized")
     else:
-        print("  ❌ Not a git repository")
+        print("   Not a git repository")
         return False
     
     # Check branch
     branch = os.popen('git branch --show-current').read().strip()
-    print(f"  ✅ Current branch: {branch}")
+    print(f"   Current branch: {branch}")
     
     return True
 
@@ -65,10 +65,10 @@ def verify_venv():
     print("\nChecking virtual environment...")
     
     if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
-        print("  ✅ Virtual environment active")
+        print("   Virtual environment active")
         return True
     else:
-        print("  ❌ Virtual environment NOT active")
+        print("   Virtual environment NOT active")
         print("     Run: source venv/bin/activate")
         return False
 
@@ -86,9 +86,9 @@ if __name__ == "__main__":
     
     print("\n" + "="*60)
     if all(results):
-        print("✅ ALL CHECKS PASSED!")
+        print(" ALL CHECKS PASSED!")
         print("You're ready for the model code!")
     else:
-        print("❌ SOME CHECKS FAILED")
+        print(" SOME CHECKS FAILED")
         print("Fix the issues above before continuing.")
     print("="*60)

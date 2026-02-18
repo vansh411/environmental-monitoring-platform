@@ -29,7 +29,7 @@ class ViTModel:
             self.create_model()
     
     def create_model(self):
-        print("🔄 Creating model with pretrained weights...")
+        print(" Creating model with pretrained weights...")
         
         inputs = keras.Input(shape=(224, 224, 3))
         vit_url = "https://tfhub.dev/sayakpaul/vit_b16_fe/1"
@@ -47,7 +47,7 @@ class ViTModel:
             metrics=['accuracy']
         )
         
-        print("✅ Model created!")
+        print(" Model created!")
         return self.model
     
     def preprocess_image(self, image_input):
@@ -95,12 +95,15 @@ class ViTModel:
     def save_model(self, save_path):
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
         self.model.save(str(save_path))
-        print(f"💾 Model saved to {save_path}")
+        print(f" Model saved to {save_path}")
     
     def load_model(self, model_path):
-        print(f"📂 Loading model from {model_path}")
-        self.model = keras.models.load_model(str(model_path))
-        print("✅ Model loaded!")
+        print(f" Loading model from {model_path}")
+        self.model = keras.models.load_model(
+          str(model_path),
+          custom_objects={"KerasLayer": hub.KerasLayer}  # <--- THIS IS THE FIX
+        )
+        print(" Model loaded!")
 
 class ModelCheckpoint:
     def __init__(self, checkpoint_dir="./models/checkpoints", monitor="val_accuracy"):
