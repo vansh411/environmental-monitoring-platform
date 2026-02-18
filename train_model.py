@@ -11,7 +11,7 @@ import tensorflow as tf
 import numpy as np
 
 def train_with_dummy():
-    print("🧪 Training with dummy data (for testing)...")
+    print(" Training with dummy data (for testing)...")
     
     # Create dummy data
     train_images = np.random.randint(0, 256, (100, 224, 224, 3), dtype=np.uint8) / 255.0
@@ -37,7 +37,7 @@ def train_with_dummy():
         callbacks=checkpoint.get_callbacks()
     )
     
-    print("✅ Training complete!")
+    print(" Training complete!")
 
 if __name__ == "__main__":
     train_with_dummy()
