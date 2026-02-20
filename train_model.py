@@ -72,7 +72,7 @@ def train_eurosat():
     vit.model.fit(
         train_ds,
         validation_data=val_ds,
-        epochs=20,
+        epochs=5,
         callbacks=checkpoint.get_callbacks()
     )
 
