@@ -1,43 +1,34 @@
 import React, { useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import FrontPage from "./Components/FrontPage";
 import ImageUploader from "./Components/ImageUploader";
 
-// ─── View constants ────────────────────────────────────────────────────────────
-// Add new views here as your app grows (e.g. VIEWS.DASHBOARD, VIEWS.SETTINGS)
-const VIEWS = {
-  HOME: "home",
-  CLASSIFIER: "classifier",
-};
+// ─── Route map ─────────────────────────────────────────────────────────────────
+// /            → FrontPage  (landing)
+// /classifier  → ImageUploader (land cover classifier)
+// anything else → redirect to /
+
+function ClassifierPage() {
+  const [prediction, setPrediction] = useState(null);
+  return (
+    <ImageUploader
+      onPrediction={setPrediction}
+      prediction={prediction}
+    />
+  );
+}
 
 function App() {
-  const [view, setView] = useState(VIEWS.HOME);
-  const [prediction, setPrediction] = useState(null);
-
-  const goToClassifier = () => {
-    setPrediction(null); // clear stale result each time
-    setView(VIEWS.CLASSIFIER);
-  };
-
-  const goHome = () => setView(VIEWS.HOME);
-
-  if (view === VIEWS.HOME) {
-    // Both "Open Land Cover Classifier" and "Launch Classifier" buttons
-    // in FrontPage call onLaunchApp — they both map here
-    return <FrontPage onLaunchApp={goToClassifier} />;
-  }
-
-  if (view === VIEWS.CLASSIFIER) {
-    // PredictionResult is now embedded inside the redesigned ImageUploader
-    return (
-      <ImageUploader
-        onPrediction={setPrediction}
-        prediction={prediction}
-        onGoHome={goHome}
-      />
-    );
-  }
-
-  return null;
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<FrontPage />} />
+        <Route path="/classifier" element={<ClassifierPage />} />
+        {/* Catch-all: redirect unknown URLs back to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
 export default App;

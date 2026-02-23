@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -490,7 +491,9 @@ function ResultsPanel({ prediction, loading }) {
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-const ImageUploader = ({ onPrediction, prediction, onGoHome }) => {
+const ImageUploader = ({ onPrediction, prediction }) => {
+  const navigate = useNavigate();
+  const goHome = () => navigate("/");
   const [selectedImage, setSelectedImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -558,7 +561,7 @@ const ImageUploader = ({ onPrediction, prediction, onGoHome }) => {
 
         {/* NAV */}
         <nav className="cl-nav">
-          <div className="cl-nav-logo" onClick={onGoHome}>
+          <div className="cl-nav-logo" onClick={goHome}>
             <div className="cl-logo-icon">🌍</div>
             GeoSentinel
           </div>
@@ -567,7 +570,7 @@ const ImageUploader = ({ onPrediction, prediction, onGoHome }) => {
             <span style={{ color: "var(--muted)" }}>›</span>
             <span>Land Cover Classifier</span>
           </div>
-          <button className="cl-nav-back" onClick={onGoHome}>
+          <button className="cl-nav-back" onClick={goHome}>
             ← Back to Home
           </button>
         </nav>
