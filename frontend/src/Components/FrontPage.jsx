@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const style = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
@@ -678,7 +679,9 @@ const steps = [
   { num: "04", title: "Change Detection & Alerting", desc: "Class maps are differenced against historical baselines. Significant deviations trigger configurable alerts delivered via webhook, email, or the real-time dashboard." },
 ];
 
-export default function FrontPage({ onLaunchApp }) {
+export default function FrontPage() {
+  const navigate = useNavigate();
+  const goToClassifier = () => navigate("/classifier");
   const [counter, setCounter] = useState({ area: 0, scenes: 0, alerts: 0 });
 
   useEffect(() => {
@@ -722,7 +725,7 @@ export default function FrontPage({ onLaunchApp }) {
             <li>API</li>
             <li>Research</li>
           </ul>
-          <button className="fp-nav-cta" onClick={onLaunchApp}>
+          <button className="fp-nav-cta" onClick={goToClassifier}>
             Open Dashboard →
           </button>
         </nav>
@@ -742,7 +745,7 @@ export default function FrontPage({ onLaunchApp }) {
             AI-powered land use change detection using Vision Transformers and multi-spectral satellite imagery. Monitor deforestation, urban growth, and agricultural shifts globally.
           </p>
           <div className="fp-hero-actions">
-            <button className="fp-btn-primary" onClick={onLaunchApp}>
+            <button className="fp-btn-primary" onClick={goToClassifier}>
               Launch Classifier
             </button>
             <button className="fp-btn-ghost">View Documentation</button>
@@ -857,7 +860,7 @@ export default function FrontPage({ onLaunchApp }) {
           <div className="fp-cta-box">
             <h2>Start monitoring the planet</h2>
             <p>Upload a satellite image and get AI land cover classification in seconds. No setup required.</p>
-            <button className="fp-btn-primary" onClick={onLaunchApp} style={{ fontSize: "0.88rem" }}>
+            <button className="fp-btn-primary" onClick={goToClassifier} style={{ fontSize: "0.88rem" }}>
               Open Land Cover Classifier →
             </button>
           </div>
