@@ -10,9 +10,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
+from backend.api import classes, health
 from backend.core.config import settings
 from backend.core.model_manager import model_manager
-from backend.routers import predict, health, classes
+from backend.api import predict
 
 
 # ── Lifespan: runs once at startup and once at shutdown ───────────────────────
