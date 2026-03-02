@@ -1,18 +1,13 @@
-"""
-backend/core/config.py
-Central config — edit values here, they propagate everywhere.
-"""
-
 from pydantic_settings import BaseSettings
 from typing import List
 
 
 class Settings(BaseSettings):
     # ── Model ─────────────────────────────────────────────────────────────────
-    # Path to your trained model — relative to project root
+    # Weights-only checkpoint — what ModelCheckpoint(save_weights_only=True) saves
     MODEL_PATH: str = "./models/checkpoints/best_model.keras"
 
-    # Fallback: if the above doesn't exist, try the final saved model
+    # Fallback: full saved model if you ran vit.save_model() manually
     MODEL_PATH_FALLBACK: str = "./models/eurosat_vit.keras"
 
     # ── API ───────────────────────────────────────────────────────────────────
@@ -20,10 +15,9 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
 
     # ── CORS ──────────────────────────────────────────────────────────────────
-    # Add your frontend URL here — default covers local React dev server
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
-        "http://localhost:5173",  # Vite
+        "http://localhost:5173",
         "http://127.0.0.1:3000",
     ]
 
@@ -38,8 +32,9 @@ class Settings(BaseSettings):
     ]
 
     class Config:
-        env_file = ".env"           # optional: override any value via .env file
+        env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 settings = Settings()

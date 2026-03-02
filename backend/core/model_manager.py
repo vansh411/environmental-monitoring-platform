@@ -1,8 +1,5 @@
 """
 backend/core/model_manager.py
-
-Loads the ViT model ONCE at startup and holds it in memory.
-All prediction requests share the same instance — no per-request loading.
 """
 
 from pathlib import Path
@@ -11,18 +8,10 @@ from backend.core.config import settings
 
 class ModelManager:
     def __init__(self):
-        self._vit = None          # populated by load()
-        self._model_path = None   # which path was actually used
+        self._vit = None
+        self._model_path = None
 
-    # ─────────────────────────────────────────────────────────────────────────
     def load(self):
-        """
-        Called once during FastAPI lifespan startup.
-        Tries MODEL_PATH first, falls back to MODEL_PATH_FALLBACK.
-        Raises RuntimeError if neither exists — fail fast rather than
-        serve wrong predictions silently.
-        """
-        # Import here to avoid TF loading before startup
         from backend.ml.vit_model import ViTModel
 
         primary  = Path(settings.MODEL_PATH)
@@ -31,7 +20,7 @@ class ModelManager:
         if primary.exists():
             path = primary
         elif fallback.exists():
-            print(f"⚠ Primary model not found, using fallback: {fallback}")
+            print(f"⚠ Primary not found, using fallback: {fallback}")
             path = fallback
         else:
             raise RuntimeError(
@@ -41,11 +30,14 @@ class ModelManager:
                 f"  Run train_model.py first."
             )
 
-        self._vit = ViTModel(model_path=str(path))
         self._model_path = path
-        print(f"✓ Model ready — loaded from: {path}")
 
-    # ─────────────────────────────────────────────────────────────────────────
+        # The error 'no item named model.weights.h5 in archive' confirms
+        # best_model.keras is a full saved model (architecture + weights)
+        # NOT a weights-only file — so load it with model_path, not weights_path
+        self._vit = ViTModel(model_path=str(path))
+        print(f"✓ Model ready — {path}")
+
     @property
     def vit(self):
         if self._vit is None:
@@ -61,5 +53,5 @@ class ModelManager:
         return str(self._model_path) if self._model_path else "not loaded"
 
 
-# ── Singleton — imported by all routers ───────────────────────────────────────
+# Singleton
 model_manager = ModelManager()
