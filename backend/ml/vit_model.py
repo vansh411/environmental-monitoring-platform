@@ -1,6 +1,5 @@
 """
-Vision Transformer for EuroSAT
-Copy to: backend/ml/vit_model.py
+backend/ml/vit_model.py
 """
 
 import os
@@ -36,7 +35,7 @@ VIT_URL = "https://tfhub.dev/sayakpaul/vit_b16_fe/1"
 
 
 class CastToFloat32(keras.layers.Layer):
-    """Replaces Lambda layer — serializes safely without safe_mode issues."""
+    """Safe float32 cast — replaces Lambda layer which blocks safe_mode loading."""
     def call(self, inputs):
         return tf.cast(inputs, tf.float32)
     def get_config(self):
@@ -48,7 +47,7 @@ class ViTModel:
         self,
         num_classes: int = 10,
         model_path: Optional[str] = None,
-        weights_path: Optional[str] = None,   # ← NEW: explicit weights-only loading
+        weights_path: Optional[str] = None,
         freeze_backbone: bool = True,
     ):
         self.num_classes = num_classes
@@ -56,18 +55,17 @@ class ViTModel:
         self.freeze_backbone = freeze_backbone
         self.model = None
 
-        if model_path and Path(model_path).exists():
-            # Full saved model — architecture + weights together
-            self._load_full_model(model_path)
-        elif weights_path and Path(weights_path).exists():
-            # Weights-only — build graph first then load weights
+        if weights_path and Path(weights_path).exists():
+            # Weights-only file (.weights.h5) — build graph first, then load weights
             self.create_model()
             self._load_weights_only(weights_path)
+        elif model_path and Path(model_path).exists():
+            # Full saved model — architecture + weights together (not used currently)
+            self._load_full_model(model_path)
         else:
-            # Fresh model — build from scratch
+            # Fresh model — training from scratch
             self.create_model()
 
-    # ─────────────────────────────────────────────────────────────────────────
     def create_model(self):
         mode = "FROZEN" if self.freeze_backbone else "TRAINABLE"
         print(f"✓ Building ViT model ({mode} backbone)...")
@@ -91,34 +89,23 @@ class ViTModel:
         )
         trainable = sum(tf.size(v).numpy() for v in self.model.trainable_variables)
         total     = sum(tf.size(v).numpy() for v in self.model.variables)
-        print(f"✓ Model built — trainable params: {trainable:,} / {total:,}")
+        print(f"✓ Model built — trainable: {trainable:,} / {total:,} params")
         return self.model
 
-    # ─────────────────────────────────────────────────────────────────────────
-    def _load_full_model(self, model_path: str):
-        """Load a complete saved model (architecture + weights)."""
-        print(f"✓ Loading full model from: {model_path}")
-        self.model = keras.models.load_model(
-            str(model_path),
-            custom_objects={
-                "KerasLayer": hub.KerasLayer,
-                "CastToFloat32": CastToFloat32,
-            },
-            safe_mode=False,
-        )
-        print("✓ Full model loaded!")
-
     def _load_weights_only(self, weights_path: str):
-        """Load weights into an already-built model graph."""
         print(f"✓ Loading weights from: {weights_path}")
         self.model.load_weights(str(weights_path))
         print("✓ Weights loaded!")
 
-    # ── Keep load_model for backwards compatibility ───────────────────────────
-    def load_model(self, model_path: str):
-        self._load_full_model(model_path)
+    def _load_full_model(self, model_path: str):
+        print(f"✓ Loading full model from: {model_path}")
+        self.model = keras.models.load_model(
+            str(model_path),
+            custom_objects={"KerasLayer": hub.KerasLayer, "CastToFloat32": CastToFloat32},
+            safe_mode=False,
+        )
+        print("✓ Full model loaded!")
 
-    # ─────────────────────────────────────────────────────────────────────────
     def preprocess_image(self, image_input):
         if isinstance(image_input, (str, Path)):
             image = Image.open(image_input).convert("RGB")
@@ -132,7 +119,6 @@ class ViTModel:
         image = np.array(image, dtype=np.float32) / 255.0
         return np.expand_dims(image, axis=0)
 
-    # ─────────────────────────────────────────────────────────────────────────
     def predict(self, image_input, return_probabilities: bool = True) -> Dict:
         if self.model is None:
             raise ValueError("Model not loaded")
@@ -152,7 +138,6 @@ class ViTModel:
             }
         return result
 
-    # ─────────────────────────────────────────────────────────────────────────
     def save_model(self, save_path: str):
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
         self.model.save(str(save_path))
@@ -178,7 +163,6 @@ class ViTModel:
         print(f"✓ Unfrozen top {num_layers} transformer blocks — LR={new_lr}")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 class ModelCheckpoint:
     def __init__(self, checkpoint_dir="./models/checkpoints", monitor="val_accuracy"):
         self.checkpoint_dir = Path(checkpoint_dir)
@@ -187,6 +171,8 @@ class ModelCheckpoint:
 
     def get_callbacks(self):
         return [
+            # save_weights_only=True → saves only head weights (~2MB)
+            # prevents h5py MemoryError that crashed Epoch 1 previously
             keras.callbacks.ModelCheckpoint(
                 filepath=str(self.checkpoint_dir / "best_model.weights.h5"),
                 monitor=self.monitor,

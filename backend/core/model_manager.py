@@ -1,7 +1,6 @@
 """
 backend/core/model_manager.py
 """
-
 from pathlib import Path
 from backend.core.config import settings
 
@@ -20,7 +19,7 @@ class ModelManager:
         if primary.exists():
             path = primary
         elif fallback.exists():
-            print(f"⚠ Primary not found, using fallback: {fallback}")
+            print(f"⚠ Using fallback: {fallback}")
             path = fallback
         else:
             raise RuntimeError(
@@ -31,11 +30,8 @@ class ModelManager:
             )
 
         self._model_path = path
-
-        # The error 'no item named model.weights.h5 in archive' confirms
-        # best_model.keras is a full saved model (architecture + weights)
-        # NOT a weights-only file — so load it with model_path, not weights_path
-        self._vit = ViTModel(model_path=str(path))
+        # Always use weights_path — ModelCheckpoint saves weights-only files
+        self._vit = ViTModel(weights_path=str(path), freeze_backbone=True)
         print(f"✓ Model ready — {path}")
 
     @property
@@ -53,5 +49,4 @@ class ModelManager:
         return str(self._model_path) if self._model_path else "not loaded"
 
 
-# Singleton
 model_manager = ModelManager()
