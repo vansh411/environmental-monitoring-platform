@@ -1,14 +1,8 @@
-"""
-backend/routers/health.py
-GET /health — confirms API and model are both alive.
-Your frontend or a monitoring tool can ping this before sending images.
-"""
-
+"""backend/api/health.py"""
 from fastapi import APIRouter
 from backend.core.model_manager import model_manager
 
 router = APIRouter()
-
 
 @router.get("/health")
 def health_check():

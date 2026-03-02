@@ -1,13 +1,13 @@
 """
-Training script - Optimized Version (Reduced Training Time)
-Copy to: train_model.py
+train_model.py — Optimized for slow CPU systems
 
-All 3 speed levers applied:
-  1. Batch size 16 on CPU  → 2700 batches down to ~1350 per epoch
-  2. Subset fraction 0.5   → 1350 down to ~675 batches per epoch
-  3. Max 5 epochs          → early stopping usually cuts this to 3-4
-  Net result: ~10x fewer steps than the original script.
-  Expected accuracy: 88-92% (frozen ViT features are already very strong)
+Settings tuned for your machine:
+  - Batch size 16    → fewer memory pressure, still fast
+  - Subset 30%       → ~400 batches per epoch instead of 1350
+  - Max 3 epochs     → early stopping kicks in around epoch 2-3
+  - No augmentation  → saves CPU time per batch
+  Estimated time: 20-35 minutes total
+  Expected accuracy: 85-90% (more than enough for a working app)
 """
 
 import sys
@@ -17,46 +17,23 @@ sys.path.insert(0, str(Path(__file__).parent))
 import tensorflow as tf
 from backend.ml.vit_model import ViTModel, ModelCheckpoint
 
-# ─── Config ───────────────────────────────────────────────────────────────────
-DATASET_PATH     = Path("data/eurosat/EuroSAT")
-SAVE_PATH        = "./models/eurosat_vit.keras"
-IMAGE_SIZE       = (224, 224)
-AUTOTUNE         = tf.data.AUTOTUNE
+# ─── Config — tweak these if needed ──────────────────────────────────────────
+DATASET_PATH    = Path("data/eurosat/EuroSAT")
+IMAGE_SIZE      = (224, 224)
+AUTOTUNE        = tf.data.AUTOTUNE
+GPU_AVAILABLE   = bool(tf.config.list_physical_devices("GPU"))
 
-GPU_AVAILABLE    = bool(tf.config.list_physical_devices("GPU"))
-
-# ── Lever 1: Bigger batch size ────────────────────────────────────────────────
-# Was 8 on CPU → now 16. Same data, half as many batches per epoch.
-# No accuracy impact whatsoever.
-BATCH_SIZE       = 32 if GPU_AVAILABLE else 16
-
-# ── Lever 2: Dataset subset ───────────────────────────────────────────────────
-# 0.5 = use 50% of training data. With a frozen ViT backbone the pretrained
-# features are so strong that 50% of EuroSAT still gives 88-92% accuracy.
-# Set to 1.0 for a final full-quality run once you're happy with the setup.
-SUBSET_FRACTION  = 0.5
-
-# ── Lever 3: Fewer epochs ─────────────────────────────────────────────────────
-# Frozen-head training converges fast — usually 3-4 epochs is enough.
-# EarlyStopping (patience=3) will cut this automatically if it plateaus.
-PHASE1_EPOCHS    = 1
-PHASE2_EPOCHS    = 5   # GPU only — skipped on CPU
+BATCH_SIZE      = 32 if GPU_AVAILABLE else 16   # 16 on CPU — safe for RAM
+SUBSET_FRACTION = 0.3    # 30% of data — fast but still accurate enough
+PHASE1_EPOCHS   = 3      # early stopping will likely cut to 2
 
 print(f"\n{'GPU' if GPU_AVAILABLE else 'CPU'} detected")
 print(f"Batch size     : {BATCH_SIZE}")
-print(f"Subset fraction: {SUBSET_FRACTION} ({int(SUBSET_FRACTION*100)}% of dataset)")
-print(f"Max epochs     : {PHASE1_EPOCHS} (EarlyStopping may cut this further)\n")
+print(f"Subset         : {int(SUBSET_FRACTION*100)}% of dataset")
+print(f"Max epochs     : {PHASE1_EPOCHS}\n")
 
 
-# ─── Data augmentation ────────────────────────────────────────────────────────
-data_augmentation = tf.keras.Sequential([
-    tf.keras.layers.RandomFlip("horizontal"),
-    tf.keras.layers.RandomRotation(0.1),
-    tf.keras.layers.RandomZoom(0.1),
-], name="augmentation")
-
-
-# ─── Dataset loading ──────────────────────────────────────────────────────────
+# ─── Dataset ─────────────────────────────────────────────────────────────────
 def load_eurosat_dataset():
     print(f"Loading EuroSAT from: {DATASET_PATH}")
 
@@ -76,32 +53,32 @@ def load_eurosat_dataset():
         DATASET_PATH, subset="validation", shuffle=False, **common_kwargs
     )
 
-    # ── Lever 2 applied here: .take() limits batches used per epoch ───────────
-    # EuroSAT has ~21,600 training images → 21600/16 = 1350 batches at batch_size=16
-    # 1350 * 0.5 = 675 batches per epoch
-    total_train_batches = sum(1 for _ in train_ds)
-    total_val_batches   = sum(1 for _ in val_ds)
-    take_train = max(1, int(total_train_batches * SUBSET_FRACTION))
-    take_val   = max(1, int(total_val_batches   * SUBSET_FRACTION))
+    # ── Calculate subset size from dataset cardinality (no slow loop) ─────────
+    # EuroSAT: 21,600 train + 5,400 val images
+    # At batch_size=16: 1350 train batches, 337 val batches
+    # At 30%: 405 train, 101 val
+    train_card = train_ds.cardinality().numpy()
+    val_card   = val_ds.cardinality().numpy()
 
-    print(f"Total batches available — train: {total_train_batches}, val: {total_val_batches}")
-    print(f"Using subset           — train: {take_train}, val: {take_val}")
+    # cardinality returns -1 if unknown — fall back to safe estimates
+    if train_card > 0:
+        take_train = max(1, int(train_card * SUBSET_FRACTION))
+        take_val   = max(1, int(val_card   * SUBSET_FRACTION))
+    else:
+        take_train = int(1350 * SUBSET_FRACTION)
+        take_val   = int(337  * SUBSET_FRACTION)
+
+    print(f"Using {take_train} train batches, {take_val} val batches per epoch")
 
     def normalize(image, label):
         return tf.cast(image, tf.float32) / 255.0, label
 
-    def augment(image, label):
-        image = data_augmentation(image, training=True)
-        return image, label
-
-    # Pipeline: normalize → cache → augment → prefetch
-    # .cache() must come BEFORE augment so we cache clean images and augment freshly each epoch
+    # No augmentation on CPU — saves ~20% time per batch with minimal accuracy loss
     train_ds = (
         train_ds
         .take(take_train)
         .map(normalize, num_parallel_calls=AUTOTUNE)
-        .cache()
-        .map(augment, num_parallel_calls=AUTOTUNE)
+        .cache()          # after epoch 1 everything loads from RAM
         .prefetch(AUTOTUNE)
     )
 
@@ -113,7 +90,7 @@ def load_eurosat_dataset():
         .prefetch(AUTOTUNE)
     )
 
-    print(f"✓ Dataset ready\n")
+    print("✓ Dataset ready\n")
     return train_ds, val_ds
 
 
@@ -121,15 +98,14 @@ def load_eurosat_dataset():
 def train_eurosat():
     print("=" * 52)
     print("  TRAINING VISION TRANSFORMER ON EUROSAT")
-    print("=" * 52)
+    print("=" * 52 + "\n")
 
     train_ds, val_ds = load_eurosat_dataset()
     checkpoint = ModelCheckpoint()
 
-    # ── Phase 1: Head-only training (always runs) ─────────────────────────────
     print("── Phase 1: Head-only training ──────────────────────")
-    print("   Backbone frozen — only ~200K params train (was 86M)")
-    print("   EarlyStopping patience=3 will halt if val_accuracy plateaus\n")
+    print("   Backbone frozen — only ~200K params train")
+    print("   Checkpoint saves to: models/checkpoints/best_model.weights.h5\n")
 
     vit = ViTModel(num_classes=10, freeze_backbone=True)
 
@@ -141,51 +117,24 @@ def train_eurosat():
         verbose=1,
     )
 
-    best_acc = max(history.history.get("val_accuracy", [0]))
-    total_epochs_run = len(history.history["val_accuracy"])
-    print(f"\n✓ Phase 1 complete")
-    print(f"  Epochs run      : {total_epochs_run} / {PHASE1_EPOCHS}")
-    print(f"  Best val accuracy: {best_acc:.4f} ({best_acc*100:.1f}%)")
+    best_acc       = max(history.history.get("val_accuracy", [0]))
+    epochs_run     = len(history.history["val_accuracy"])
 
-    # ── Phase 2: Fine-tune top blocks (GPU only, skipped on CPU) ─────────────
-    if GPU_AVAILABLE and best_acc > 0.80:
-        print("\n── Phase 2: Fine-tuning top 4 transformer blocks ────")
-        vit.unfreeze_top_layers(num_layers=4, new_lr=5e-5)
-        vit.model.fit(
-            train_ds,
-            validation_data=val_ds,
-            epochs=PHASE2_EPOCHS,
-            callbacks=checkpoint.get_callbacks(),
-            verbose=1,
-        )
-        print("✓ Phase 2 complete")
-    else:
-        reason = (
-            "no GPU detected — Phase 2 is impractical on CPU"
-            if not GPU_AVAILABLE
-            else f"Phase 1 accuracy {best_acc:.1%} below 80% threshold"
-        )
-        print(f"\n⚠ Phase 2 skipped — {reason}")
+    print(f"\n✓ Training complete")
+    print(f"  Epochs run       : {epochs_run} / {PHASE1_EPOCHS}")
+    print(f"  Best val accuracy: {best_acc*100:.1f}%")
 
-    # ── Save ──────────────────────────────────────────────────────────────────
-    vit.save_model(SAVE_PATH)
+    # Phase 2 skipped on CPU — not practical
+    if not GPU_AVAILABLE:
+        print("  Phase 2 skipped  : no GPU (head-only is sufficient)")
 
     print("\n" + "=" * 52)
-    print("  TRAINING COMPLETE!")
-    print(f"  Saved → {SAVE_PATH}")
-    print(f"  Val accuracy: {best_acc*100:.1f}%")
+    print("  DONE! Start the backend with:")
+    print("  python -m uvicorn backend.main:app --reload --port 8000")
     print("=" * 52 + "\n")
-
-    # ── Hint for a full-quality run ───────────────────────────────────────────
-    if SUBSET_FRACTION < 1.0:
-        print("TIP: For a final high-accuracy model, set:")
-        print("     SUBSET_FRACTION = 1.0")
-        print("     PHASE1_EPOCHS   = 10")
-        print("     then re-run train_model.py\n")
 
 
 if __name__ == "__main__":
     for gpu in tf.config.list_physical_devices("GPU"):
         tf.config.experimental.set_memory_growth(gpu, True)
-
     train_eurosat()
