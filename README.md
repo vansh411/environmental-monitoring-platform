@@ -12,13 +12,7 @@ AI-powered land use change detection using Vision Transformers and satellite ima
 ##  Current Status
 **Phase 1: Foundation** - In Development
 
-### Progress
-- [x] Project structure created
-- [x] Git repository initialized
-- [ ] Model implementation
-- [ ] Training pipeline
-- [ ] API development
-- [ ] Deployment
+
 
 ##  Tech Stack
 - **ML Framework:** TensorFlow 2.15
