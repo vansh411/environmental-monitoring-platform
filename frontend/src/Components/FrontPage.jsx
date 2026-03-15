@@ -774,7 +774,7 @@ export default function FrontPage() {
 
         {/* FEATURES */}
         <section className="fp-features">
-          <div className="fp-section-label">// capabilities</div>
+        
           <h2 className="fp-section-title">Everything you need to monitor Earth's surface</h2>
           <div className="fp-features-grid">
             {features.map((f) => (
