@@ -716,7 +716,7 @@ export default function FrontPage() {
         {/* NAV */}
         <nav className="fp-nav">
           <div className="fp-logo">
-            <div className="fp-logo-icon">🌍</div>
+            <div className="fp-logo-icon"></div>
             GeoSentinel
           </div>
           <ul className="fp-nav-links">
