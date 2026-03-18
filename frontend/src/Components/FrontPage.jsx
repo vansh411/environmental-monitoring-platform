@@ -734,7 +734,7 @@ export default function FrontPage() {
         <section className="fp-hero">
           <div className="fp-badge">
             <span className="fp-badge-dot" />
-            Sentinel-2 Live · ESA Copernicus
+            Sentinel-2 · ESA Copernicus
           </div>
           <h1 className="fp-hero-title">
             Environmental<br />
