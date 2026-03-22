@@ -579,7 +579,7 @@ const ImageUploader = ({ onPrediction, prediction }) => {
         <main className="cl-main">
           {/* Header */}
           <div className="cl-header">
-            <div className="cl-section-label">// land cover classification</div>
+            
             <h1 className="cl-title">EuroSAT Classifier</h1>
             <p className="cl-subtitle">
               Upload a Sentinel-2 satellite image patch to classify land cover type using our Vision Transformer model trained on the EuroSAT dataset.
