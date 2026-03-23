@@ -562,7 +562,7 @@ const ImageUploader = ({ onPrediction, prediction }) => {
         {/* NAV */}
         <nav className="cl-nav">
           <div className="cl-nav-logo" onClick={goHome}>
-            <div className="cl-logo-icon">🌍</div>
+            
             GeoSentinel
           </div>
           <div className="cl-breadcrumb">
