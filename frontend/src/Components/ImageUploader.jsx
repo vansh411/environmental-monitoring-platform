@@ -416,7 +416,7 @@ function ResultsPanel({ prediction, loading }) {
         <div className="cl-results-empty">
           <div className="cl-results-empty-icon">🛰️</div>
           <div>
-            Upload a satellite image patch<br />
+            Upload a Land image <br />
             and run inference to see results
           </div>
         </div>
