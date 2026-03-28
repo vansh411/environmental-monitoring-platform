@@ -416,8 +416,7 @@ function ResultsPanel({ prediction, loading }) {
         <div className="cl-results-empty">
           <div className="cl-results-empty-icon">🛰️</div>
           <div>
-            Upload a Land image <br />
-            and see the  results
+            Upload a Land image 
           </div>
         </div>
       )}
