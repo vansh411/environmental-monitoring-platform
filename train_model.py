@@ -2,12 +2,15 @@
 train_model.py — Optimized for slow CPU systems
 
 Settings tuned for your machine:
-  - Batch size 16    → fewer memory pressure, still fast
+  - Batch size 16    → less memory pressure, still fast
   - Subset 30%       → ~400 batches per epoch instead of 1350
   - Max 3 epochs     → early stopping kicks in around epoch 2-3
   - No augmentation  → saves CPU time per batch
-  Estimated time: 20-35 minutes total
-  Expected accuracy: 85-90% (more than enough for a working app)
+
+  Estimated time : 20-35 minutes total (CPU)
+  Expected accuracy: 85-90%
+
+NOTE: For faster + better training, use GeoSentinel_Colab_Training.py on Colab GPU.
 """
 
 import sys
@@ -17,23 +20,23 @@ sys.path.insert(0, str(Path(__file__).parent))
 import tensorflow as tf
 from backend.ml.vit_model import ViTModel, ModelCheckpoint
 
-# ─── Config — tweak these if needed ──────────────────────────────────────────
+# ─── Config ───────────────────────────────────────────────────────────────────
 DATASET_PATH    = Path("data/eurosat/EuroSAT")
 IMAGE_SIZE      = (224, 224)
 AUTOTUNE        = tf.data.AUTOTUNE
 GPU_AVAILABLE   = bool(tf.config.list_physical_devices("GPU"))
 
-BATCH_SIZE      = 32 if GPU_AVAILABLE else 16   # 16 on CPU — safe for RAM
-SUBSET_FRACTION = 0.3    # 30% of data — fast but still accurate enough
-PHASE1_EPOCHS   = 3      # early stopping will likely cut to 2
+BATCH_SIZE      = 32 if GPU_AVAILABLE else 16
+SUBSET_FRACTION = 0.3
+PHASE1_EPOCHS   = 3
 
 print(f"\n{'GPU' if GPU_AVAILABLE else 'CPU'} detected")
 print(f"Batch size     : {BATCH_SIZE}")
-print(f"Subset         : {int(SUBSET_FRACTION*100)}% of dataset")
+print(f"Subset         : {int(SUBSET_FRACTION * 100)}% of dataset")
 print(f"Max epochs     : {PHASE1_EPOCHS}\n")
 
 
-# ─── Dataset ─────────────────────────────────────────────────────────────────
+# ─── Dataset ──────────────────────────────────────────────────────────────────
 def load_eurosat_dataset():
     print(f"Loading EuroSAT from: {DATASET_PATH}")
 
@@ -53,14 +56,9 @@ def load_eurosat_dataset():
         DATASET_PATH, subset="validation", shuffle=False, **common_kwargs
     )
 
-    # ── Calculate subset size from dataset cardinality (no slow loop) ─────────
-    # EuroSAT: 21,600 train + 5,400 val images
-    # At batch_size=16: 1350 train batches, 337 val batches
-    # At 30%: 405 train, 101 val
     train_card = train_ds.cardinality().numpy()
     val_card   = val_ds.cardinality().numpy()
 
-    # cardinality returns -1 if unknown — fall back to safe estimates
     if train_card > 0:
         take_train = max(1, int(train_card * SUBSET_FRACTION))
         take_val   = max(1, int(val_card   * SUBSET_FRACTION))
@@ -73,15 +71,13 @@ def load_eurosat_dataset():
     def normalize(image, label):
         return tf.cast(image, tf.float32) / 255.0, label
 
-    # No augmentation on CPU — saves ~20% time per batch with minimal accuracy loss
     train_ds = (
         train_ds
         .take(take_train)
         .map(normalize, num_parallel_calls=AUTOTUNE)
-        .cache()          # after epoch 1 everything loads from RAM
+        .cache()
         .prefetch(AUTOTUNE)
     )
-
     val_ds = (
         val_ds
         .take(take_val)
@@ -105,7 +101,7 @@ def train_eurosat():
 
     print("── Phase 1: Head-only training ──────────────────────")
     print("   Backbone frozen — only ~200K params train")
-    print("   Checkpoint saves to: models/checkpoints/best_model.weights.h5\n")
+    print(f"  Checkpoint → {checkpoint.weights_file}\n")
 
     vit = ViTModel(num_classes=10, freeze_backbone=True)
 
@@ -117,16 +113,16 @@ def train_eurosat():
         verbose=1,
     )
 
-    best_acc       = max(history.history.get("val_accuracy", [0]))
-    epochs_run     = len(history.history["val_accuracy"])
+    best_acc   = max(history.history.get("val_accuracy", [0]))
+    epochs_run = len(history.history["val_accuracy"])
 
     print(f"\n✓ Training complete")
-    print(f"  Epochs run       : {epochs_run} / {PHASE1_EPOCHS}")
-    print(f"  Best val accuracy: {best_acc*100:.1f}%")
+    print(f"  Epochs run        : {epochs_run} / {PHASE1_EPOCHS}")
+    print(f"  Best val accuracy : {best_acc * 100:.1f}%")
+    print(f"  Weights saved to  : {checkpoint.weights_file}")
 
-    # Phase 2 skipped on CPU — not practical
     if not GPU_AVAILABLE:
-        print("  Phase 2 skipped  : no GPU (head-only is sufficient)")
+        print("  Phase 2 skipped   : no GPU")
 
     print("\n" + "=" * 52)
     print("  DONE! Start the backend with:")

@@ -13,11 +13,11 @@ from backend.api import predict, health, classes
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("  GeoSentinel API starting up...")
-    print("="*50)
+    print("=" * 50)
     model_manager.load()
-    print("="*50 + "\n")
+    print("=" * 50 + "\n")
     yield
     print("\nGeoSentinel API shutting down.")
 
